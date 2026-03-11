@@ -1,0 +1,2362 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Crypto Exchange | СВОИ КРИПТЫ</title>
+    <!-- Подключаем Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <!-- Font Awesome для иконок -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 12px;
+            color: white;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        /* ========== ЭКРАН БАНА ========== */
+        #ban-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #2c0a0a 0%, #4a0f0f 100%);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            animation: banPulse 2s ease-in-out infinite;
+        }
+
+        #ban-screen.show {
+            display: flex;
+        }
+
+        .ban-content {
+            text-align: center;
+            padding: 30px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 30px;
+            backdrop-filter: blur(10px);
+            border: 2px solid #ff6384;
+            max-width: 90%;
+        }
+
+        .ban-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: shake 0.5s ease-in-out infinite;
+        }
+
+        .ban-title {
+            font-size: 36px;
+            font-weight: bold;
+            color: #ff6384;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        .ban-reason {
+            font-size: 18px;
+            color: #fff;
+            margin-bottom: 10px;
+            background: rgba(255, 99, 132, 0.2);
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .ban-timer {
+            font-size: 48px;
+            font-weight: bold;
+            color: #4ecca7;
+            margin: 20px 0;
+            font-family: monospace;
+            text-shadow: 0 0 10px rgba(78, 204, 167, 0.5);
+        }
+
+        .ban-until {
+            font-size: 14px;
+            color: #888;
+        }
+
+        @keyframes banPulse {
+            0%, 100% { background: linear-gradient(135deg, #2c0a0a 0%, #4a0f0f 100%); }
+            50% { background: linear-gradient(135deg, #3a0d0d 0%, #5a1212 100%); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-10deg); }
+            75% { transform: rotate(10deg); }
+        }
+        /* ========== КОНЕЦ ЭКРАНА БАНА ========== */
+
+        /* Анимация загрузки */
+        #splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            animation: fadeOut 1s ease-in-out 2s forwards;
+        }
+
+        .splash-content {
+            text-align: center;
+        }
+
+        .splash-logo {
+            font-size: 80px;
+            animation: bounce 1s ease-in-out infinite;
+        }
+
+        .splash-text {
+            font-size: 24px;
+            color: #4ecca7;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+
+        .loader {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #4ecca7;
+            border-top: 5px solid transparent;
+            border-radius: 50%;
+            margin: 20px auto;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeOut {
+            to { opacity: 0; visibility: hidden; }
+        }
+
+        .header-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: bold;
+            color: #4ecca7;
+        }
+
+        .player-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 5px;
+        }
+
+        .player-id {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 6px 12px;
+            border-radius: 30px;
+            font-size: 12px;
+        }
+
+        .player-id span {
+            color: #4ecca7;
+            font-weight: bold;
+            font-family: monospace;
+        }
+
+        .player-username {
+            background: rgba(78, 204, 167, 0.2);
+            padding: 4px 10px;
+            border-radius: 30px;
+            font-size: 14px;
+            color: #4ecca7;
+            font-weight: bold;
+        }
+
+        .player-username span {
+            color: white;
+            font-weight: normal;
+        }
+
+        .balance-card {
+            background: linear-gradient(135deg, #4ecca7 0%, #2c3e50 100%);
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .balance-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .balance-amount {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .rates-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .rates-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .global-badge {
+            background: #4ecca7;
+            color: #1a1a2e;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .rate-item {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .coin-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .coin-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-weight: bold;
+            background-size: cover;
+            background-position: center;
+        }
+
+        /* Стандартные иконки (можно заменить своими фото) */
+        .btc-icon { background: #f7931a; }
+        .eth-icon { background: #627eea; }
+        .sol-icon { background: #00ffbd; color: black; }
+        .custom-icon { background: #4ecca7; }
+
+        .coin-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .coin-symbol {
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .coin-name {
+            font-size: 12px;
+            opacity: 0.6;
+        }
+
+        .price-info {
+            text-align: right;
+        }
+
+        .current-price {
+            font-size: 20px;
+            font-weight: bold;
+            color: #4ecca7;
+        }
+
+        .price-change {
+            font-size: 13px;
+            padding: 4px 8px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-top: 4px;
+        }
+
+        .change-up {
+            background: rgba(78, 204, 167, 0.2);
+            color: #4ecca7;
+        }
+
+        .change-down {
+            background: rgba(255, 99, 99, 0.2);
+            color: #ff6384;
+        }
+
+        .timer {
+            text-align: center;
+            margin-top: 12px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #4ecca7;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            opacity: 0.6;
+            margin-top: 4px;
+        }
+
+        .action-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .action-title {
+            font-size: 18px;
+            margin-bottom: 16px;
+            color: #4ecca7;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .form-group select,
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            font-size: 16px;
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-buy {
+            background: #4ecca7;
+            color: #1a1a2e;
+        }
+
+        .btn-sell {
+            background: #ff6384;
+            color: white;
+        }
+
+        .btn-admin {
+            background: #f89d4b;
+            color: #1a1a2e;
+        }
+
+        .btn-success {
+            background: #4ecca7;
+            color: #1a1a2e;
+        }
+
+        .btn-danger {
+            background: #ff6384;
+            color: white;
+        }
+
+        .btn-exchange {
+            background: #9b59b6;
+            color: white;
+            margin-top: 10px;
+        }
+
+        .btn-ban {
+            background: #c0392b;
+            color: white;
+        }
+
+        .btn-unban {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-deduct {
+            background: #e67e22;
+            color: white;
+        }
+
+        .btn-id {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-wipe {
+            background: #8e44ad;
+            color: white;
+        }
+
+        .btn-add {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .btn-photo {
+            background: #e67e22;
+            color: white;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .button-group .btn {
+            flex: 1;
+        }
+
+        .portfolio-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .portfolio-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            margin-bottom: 8px;
+        }
+
+        .portfolio-coin {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .portfolio-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: bold;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .portfolio-amount {
+            font-weight: bold;
+            color: #4ecca7;
+            font-size: 18px;
+        }
+
+        .portfolio-value {
+            font-size: 13px;
+            opacity: 0.6;
+        }
+
+        .admin-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .admin-card.show {
+            display: block;
+        }
+
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .admin-badge {
+            background: #ff6384;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .exchange-section {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .exchange-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .exchange-info {
+            flex: 1;
+        }
+
+        .exchange-from {
+            color: #4ecca7;
+            font-weight: bold;
+        }
+
+        .exchange-to {
+            color: #f89d4b;
+            font-weight: bold;
+        }
+
+        .exchange-amount {
+            font-size: 18px;
+            font-weight: bold;
+            color: #ff6384;
+        }
+
+        .exchange-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .exchange-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .exchange-btn.accept {
+            background: #4ecca7;
+            color: #1a1a2e;
+        }
+
+        .exchange-btn.decline {
+            background: #ff6384;
+            color: white;
+        }
+
+        .players-list {
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 8px;
+        }
+
+        .player-row {
+            padding: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .player-row:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .player-row:last-child {
+            border-bottom: none;
+        }
+
+        .player-row-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .player-row-username {
+            font-weight: bold;
+            color: #4ecca7;
+            font-size: 16px;
+        }
+
+        .player-row-id {
+            font-size: 12px;
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .player-row-badges {
+            display: flex;
+            gap: 5px;
+            margin-top: 3px;
+        }
+
+        .current-player-badge {
+            background: #4ecca7;
+            color: #1a1a2e;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+        }
+
+        .banned-badge {
+            background: #ff6384;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+        }
+
+        .transactions-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 20px;
+        }
+
+        .transaction-item {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .transaction-item.buy {
+            border-left: 4px solid #4ecca7;
+        }
+
+        .transaction-item.sell {
+            border-left: 4px solid #ff6384;
+        }
+
+        .transaction-item.give {
+            border-left: 4px solid #f89d4b;
+        }
+
+        .transaction-item.deduct {
+            border-left: 4px solid #e67e22;
+        }
+
+        .transaction-item.exchange {
+            border-left: 4px solid #9b59b6;
+        }
+
+        .transaction-time {
+            font-size: 11px;
+            opacity: 0.5;
+        }
+
+        .notification {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            background: #4ecca7;
+            color: #1a1a2e;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: bold;
+            transform: translateY(-150%);
+            transition: transform 0.3s;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            transform: translateY(0);
+        }
+
+        .notification.error {
+            background: #ff6384;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- Экран загрузки -->
+    <div id="splash-screen">
+        <div class="splash-content">
+            <div class="splash-logo">🚀</div>
+            <div class="splash-text">CRYPTO EXCHANGE</div>
+            <div class="loader"></div>
+        </div>
+    </div>
+
+    <!-- Экран бана -->
+    <div id="ban-screen">
+        <div class="ban-content">
+            <div class="ban-icon">⛔</div>
+            <div class="ban-title">ВЫ ЗАБАНЕНЫ</div>
+            <div class="ban-reason" id="banReason"></div>
+            <div class="ban-timer" id="banTimer">00:00</div>
+            <div class="ban-until" id="banUntil"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header-card">
+            <div class="header-top">
+                <div class="logo">🚀 CRYPTO ONLINE</div>
+                <div class="player-info">
+                    <div class="player-id">
+                        🆔 <span id="playerIdDisplay">загрузка...</span>
+                    </div>
+                    <div class="player-username">
+                        👤 <span id="playerUsername">никнейм</span>
+                    </div>
+                </div>
+            </div>
+            <div class="balance-card">
+                <span class="balance-label">💰 Твой баланс</span>
+                <span class="balance-amount" id="usdBalance">0 $</span>
+            </div>
+        </div>
+
+        <!-- Настройка ника (имени, не ID) -->
+        <div class="action-card">
+            <div class="action-title">👤 Настройка имени</div>
+            <div class="form-group">
+                <label>Твое имя (никнейм)</label>
+                <input type="text" id="usernameInput" placeholder="Например: КриптоКороль" maxlength="20">
+            </div>
+            <button class="btn btn-success" onclick="setUsername()">✅ Установить имя</button>
+        </div>
+
+        <!-- Криптовалюты -->
+        <div class="rates-card">
+            <div class="rates-title">
+                <span>📈 Рынок (от -60% до +60%)</span>
+                <span class="global-badge">🔥 Без лимитов</span>
+            </div>
+            
+            <div id="rates"></div>
+            
+            <div class="timer" id="timerDisplay">⏱️ Обновление через: 30с</div>
+        </div>
+
+        <!-- ТОП игроков -->
+        <div class="top-section" style="background: rgba(255,255,255,0.05); border-radius: 20px; padding: 20px; margin-bottom: 16px;">
+            <div class="action-title" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>👑 ТОП игроков</span>
+                <button class="btn btn-wipe" onclick="wipeTop()" style="width: auto; padding: 8px 15px;">🧹 ВАЙП</button>
+            </div>
+            <div id="topList"></div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-value" id="totalPlayers">0</div>
+                <div class="stat-label">Игроков</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="totalValue">0 $</div>
+                <div class="stat-label">Капитал</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="totalTrades">0</div>
+                <div class="stat-label">Сделок</div>
+            </div>
+        </div>
+
+        <!-- Покупка/продажа -->
+        <div class="action-card">
+            <div class="action-title">📥 Купить крипту</div>
+            <div class="form-group">
+                <label>Валюта</label>
+                <select id="buyCurrency"></select>
+            </div>
+            <div class="form-group">
+                <label>Сумма (USD)</label>
+                <input type="number" id="buyAmount" placeholder="100" min="1">
+            </div>
+            <button class="btn btn-buy" onclick="buyCrypto()">💰 Купить</button>
+        </div>
+
+        <div class="action-card">
+            <div class="action-title">📤 Продать крипту</div>
+            <div class="form-group">
+                <label>Валюта</label>
+                <select id="sellCurrency"></select>
+            </div>
+            <div class="form-group">
+                <label>Количество</label>
+                <input type="number" id="sellAmount" placeholder="0.001" step="0.001" min="0.001">
+            </div>
+            <button class="btn btn-sell" onclick="sellCrypto()">📉 Продать</button>
+        </div>
+
+        <!-- Перевод денег -->
+        <div class="action-card">
+            <div class="action-title">🔄 Перевести деньги</div>
+            <div class="form-group">
+                <label>Кому (имя или ID)</label>
+                <input type="text" id="receiverUsername" placeholder="Имя или ID">
+            </div>
+            <div class="form-group">
+                <label>Сумма (USD)</label>
+                <input type="number" id="exchangeAmount" placeholder="1000" min="1">
+            </div>
+            <button class="btn btn-exchange" onclick="sendTransferByUsername()">📨 Перевести</button>
+            <p style="font-size: 12px; opacity: 0.6; margin-top: 10px;">Можно вводить имя или ID</p>
+        </div>
+
+        <!-- Портфель -->
+        <div class="portfolio-card">
+            <div class="action-title">💼 Мой портфель</div>
+            <div id="portfolio"></div>
+        </div>
+
+        <!-- Вход в админку -->
+        <div class="action-card" id="adminLoginCard">
+            <div class="action-title">👑 Админ панель</div>
+            <div class="form-group">
+                <label>Пароль</label>
+                <input type="password" id="adminPassword" placeholder="Введите пароль">
+            </div>
+            <button class="btn btn-admin" onclick="loginAdmin()">Войти</button>
+        </div>
+
+        <!-- Админ панель -->
+        <div class="admin-card" id="adminPanel">
+            <div class="admin-header">
+                <span class="action-title">👑 Управление</span>
+                <span class="admin-badge">ADMIN</span>
+            </div>
+            
+            <!-- Управление криптовалютами -->
+            <div style="margin-bottom: 20px;">
+                <h3 style="color: #4ecca7; margin-bottom: 15px;">💰 Управление криптой</h3>
+                
+                <!-- Добавление новой крипты -->
+                <div style="background: rgba(255,255,255,0.03); border-radius: 12px; padding: 15px; margin-bottom: 15px;">
+                    <h4 style="color: #fff; margin-bottom: 10px;">➕ Новая крипта</h4>
+                    <div class="form-group">
+                        <label>Название (например: Bitcoin)</label>
+                        <input type="text" id="newCoinName" placeholder="Bitcoin">
+                    </div>
+                    <div class="form-group">
+                        <label>Символ (например: BTC)</label>
+                        <input type="text" id="newCoinSymbol" placeholder="BTC" maxlength="10">
+                    </div>
+                    <div class="form-group">
+                        <label>Цена ($)</label>
+                        <input type="number" id="newCoinPrice" placeholder="50000" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Фото (URL или класс иконки)</label>
+                        <input type="text" id="newCoinIcon" placeholder="fab fa-bitcoin или ссылка на фото">
+                    </div>
+                    <button class="btn btn-add" onclick="addNewCoin()">✅ ДОБАВИТЬ</button>
+                </div>
+
+                <!-- Редактирование существующих крипт -->
+                <div style="background: rgba(255,255,255,0.03); border-radius: 12px; padding: 15px;">
+                    <h4 style="color: #fff; margin-bottom: 10px;">✏️ Редактировать крипту</h4>
+                    <div class="form-group">
+                        <label>Выбери крипту</label>
+                        <select id="editCoinSelect"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Новое название (оставь пустым, если не менять)</label>
+                        <input type="text" id="editCoinName" placeholder="Новое название">
+                    </div>
+                    <div class="form-group">
+                        <label>Новый символ (оставь пустым, если не менять)</label>
+                        <input type="text" id="editCoinSymbol" placeholder="Новый символ">
+                    </div>
+                    <div class="form-group">
+                        <label>Новая цена ($)</label>
+                        <input type="number" id="editCoinPrice" placeholder="Новая цена" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Новое фото (URL или класс иконки)</label>
+                        <input type="text" id="editCoinIcon" placeholder="Новое фото">
+                    </div>
+                    <div class="button-group">
+                        <button class="btn btn-success" onclick="updateCoin()">🔄 Обновить</button>
+                        <button class="btn btn-danger" onclick="deleteCoin()">❌ Удалить</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Курсы валют -->
+            <div style="margin-bottom: 20px;">
+                <h3 style="color: #4ecca7; margin-bottom: 15px;">📊 Курсы</h3>
+                <div class="form-group">
+                    <label>Bitcoin (BTC) $</label>
+                    <input type="number" id="adminBtcRate" step="100" min="1" value="50000">
+                </div>
+                <div class="form-group">
+                    <label>Ethereum (ETH) $</label>
+                    <input type="number" id="adminEthRate" step="10" min="1" value="2500">
+                </div>
+                <div class="form-group">
+                    <label>Solana (SOL) $</label>
+                    <input type="number" id="adminSolRate" step="1" min="1" value="100">
+                </div>
+                <button class="btn btn-success" onclick="updateRates()">🔄 Обновить курсы</button>
+            </div>
+
+            <!-- Управление балансом -->
+            <div style="margin-bottom: 20px;">
+                <h3 style="color: #4ecca7; margin-bottom: 15px;">💰 Управление балансом</h3>
+                <div class="form-group">
+                    <label>Кому (имя или ID)</label>
+                    <input type="text" id="targetUsername" placeholder="Имя или ID">
+                    <small style="color: #4ecca7; display: block; margin-top: 5px;">👉 Твой ID: <span id="currentPlayerId"></span></small>
+                </div>
+                <div class="form-group">
+                    <label>Сумма USD</label>
+                    <input type="number" id="amountInput" placeholder="1000" step="1">
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-success" onclick="giveMoneyByUsername()">💸 ВЫДАТЬ</button>
+                    <button class="btn btn-deduct" onclick="deductMoneyByUsername()">📉 СПИСАТЬ</button>
+                </div>
+            </div>
+
+            <!-- Управление ID -->
+            <div style="margin-bottom: 20px;">
+                <h3 style="color: #4ecca7; margin-bottom: 15px;">🆔 Управление ID</h3>
+                <div class="form-group">
+                    <label>Кому менять ID (имя или старый ID)</label>
+                    <input type="text" id="targetIdUser" placeholder="Имя или текущий ID">
+                </div>
+                <div class="form-group">
+                    <label>Новый ID (простое слово)</label>
+                    <input type="text" id="newId" placeholder="Например: Котик, Волк, Пират" maxlength="20">
+                </div>
+                <button class="btn btn-id" onclick="changePlayerId()">🆔 СМЕНИТЬ ID</button>
+            </div>
+
+            <!-- Управление банами -->
+            <div style="margin-bottom: 20px;">
+                <h3 style="color: #4ecca7; margin-bottom: 15px;">⛔ Управление банами</h3>
+                <div class="form-group">
+                    <label>Кого забанить (имя или ID)</label>
+                    <input type="text" id="banUsername" placeholder="Имя или ID">
+                </div>
+                <div class="form-group">
+                    <label>Причина бана</label>
+                    <input type="text" id="banReasonInput" placeholder="Например: Читерство, оскорбления...">
+                </div>
+                <div class="form-group">
+                    <label>Время бана (часов)</label>
+                    <input type="number" id="banHours" placeholder="24" min="1" value="24">
+                </div>
+                <button class="btn btn-ban" onclick="banPlayerByUsername()">⛔ ЗАБАНИТЬ</button>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <div class="form-group">
+                    <label>Кого разбанить (имя или ID)</label>
+                    <input type="text" id="unbanUsername" placeholder="Имя или ID">
+                </div>
+                <button class="btn btn-unban" onclick="unbanPlayerByUsername()">✅ РАЗБАНИТЬ</button>
+            </div>
+
+            <!-- Список игроков -->
+            <div style="margin-bottom: 20px;">
+                <h3 style="margin-bottom: 10px;">📋 Список игроков (имя / ID)</h3>
+                <div class="players-list" id="playersList"></div>
+            </div>
+
+            <button class="btn btn-danger" onclick="logoutAdmin()" style="margin-top: 20px;">🚪 Выйти</button>
+        </div>
+
+        <!-- История -->
+        <div class="transactions-card">
+            <div class="action-title">📜 История</div>
+            <div id="transactions"></div>
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // ============================================
+        // ТВОИ ДАННЫЕ ИЗ FIREBASE
+        // ============================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyBgtHuf93QreSbRFOfqu2N2aI1kPa9ez4",
+            authDomain: "dhhhfisjs.firebaseapp.com",
+            databaseURL: "https://dhhhfisjs-default-rtdb.europe-west1.firebasedatabase.app/",
+            projectId: "dhhhfisjs",
+            storageBucket: "dhhhfisjs.firebasestorage.app",
+            messagingSenderId: "665471900705",
+            appId: "1:665471900705:web:0a1ae74ad607c9c26f9760"
+        };
+
+        // Инициализация Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // ============================================
+        // ДАННЫЕ ИГРЫ
+        // ============================================
+        const BASE_COINS = {
+            BTC: { name: 'Bitcoin', price: 50000, icon: 'fab fa-bitcoin' },
+            ETH: { name: 'Ethereum', price: 2500, icon: 'fab fa-ethereum' },
+            SOL: { name: 'Solana', price: 100, icon: 'fas fa-sun' }
+        };
+        
+        // Список простых слов для ID
+        const SIMPLE_IDS = [
+            "Котик", "Собака", "Волк", "Лиса", "Медведь",
+            "Тигр", "Лев", "Панда", "Заяц", "Ёжик",
+            "Пират", "Король", "Рыцарь", "Маг", "Эльф",
+            "Гном", "Орк", "Дракон", "Феникс", "Грифон",
+            "Молния", "Гром", "Вулкан", "Огонь", "Лёд",
+            "Камень", "Гора", "Река", "Море", "Звезда",
+            "Солнце", "Луна", "Космос", "Робот", "Кибер",
+            "Хакер", "Кодер", "Биткоин", "Сатоши", "Крипто"
+        ];
+
+        let globalCoins = { ...BASE_COINS };
+        let previousCoins = JSON.parse(JSON.stringify(BASE_COINS));
+        let currentPlayer = null;
+        let currentPlayerId = null;
+        let isAdmin = false;
+        let timerSeconds = 30;
+        let timerInterval;
+        let banTimerInterval = null;
+
+        // ============================================
+        // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+        // ============================================
+        
+        // Генерация случайного простого ID
+        function generateSimpleId() {
+            return SIMPLE_IDS[Math.floor(Math.random() * SIMPLE_IDS.length)];
+        }
+
+        // Проверка, свободен ли ID
+        function isIdAvailable(id, callback) {
+            database.ref('players').once('value', (snapshot) => {
+                const players = snapshot.val() || {};
+                let taken = false;
+                for (const key in players) {
+                    if (players[key].simpleId === id) {
+                        taken = true;
+                        break;
+                    }
+                }
+                callback(taken);
+            });
+        }
+
+        // Поиск игрока по простому ID или имени
+        function findPlayerBySimpleIdOrUsername(searchTerm, callback) {
+            database.ref('players').once('value', (snapshot) => {
+                const players = snapshot.val() || {};
+                let foundPlayerId = null;
+                
+                // Ищем по простому ID
+                for (const [id, player] of Object.entries(players)) {
+                    if (player.simpleId && player.simpleId.toLowerCase() === searchTerm.toLowerCase()) {
+                        foundPlayerId = id;
+                        break;
+                    }
+                }
+                
+                // Если не нашли по ID, ищем по имени
+                if (!foundPlayerId) {
+                    for (const [id, player] of Object.entries(players)) {
+                        if (player.username && player.username.toLowerCase() === searchTerm.toLowerCase()) {
+                            foundPlayerId = id;
+                            break;
+                        }
+                    }
+                }
+                
+                callback(foundPlayerId);
+            });
+        }
+
+        // Загрузка криптовалют
+        function loadCoins() {
+            const coinsRef = database.ref('coins');
+            coinsRef.once('value', (snapshot) => {
+                if (!snapshot.exists()) {
+                    coinsRef.set(BASE_COINS);
+                } else {
+                    globalCoins = snapshot.val();
+                }
+                updateCoinSelects();
+                updateRatesDisplay();
+            });
+        }
+
+        // Обновление выпадающих списков
+        function updateCoinSelects() {
+            const buySelect = document.getElementById('buyCurrency');
+            const sellSelect = document.getElementById('sellCurrency');
+            const editSelect = document.getElementById('editCoinSelect');
+            
+            if (buySelect) {
+                buySelect.innerHTML = '';
+                Object.keys(globalCoins).forEach(symbol => {
+                    const option = document.createElement('option');
+                    option.value = symbol;
+                    option.textContent = `${globalCoins[symbol].name} (${symbol})`;
+                    buySelect.appendChild(option);
+                });
+            }
+            
+            if (sellSelect) {
+                sellSelect.innerHTML = '';
+                Object.keys(globalCoins).forEach(symbol => {
+                    const option = document.createElement('option');
+                    option.value = symbol;
+                    option.textContent = `${globalCoins[symbol].name} (${symbol})`;
+                    sellSelect.appendChild(option);
+                });
+            }
+            
+            if (editSelect) {
+                editSelect.innerHTML = '';
+                Object.keys(globalCoins).forEach(symbol => {
+                    const option = document.createElement('option');
+                    option.value = symbol;
+                    option.textContent = `${globalCoins[symbol].name} (${symbol})`;
+                    editSelect.appendChild(option);
+                });
+            }
+        }
+
+        // Обновление отображения курсов
+        function updateRatesDisplay() {
+            const ratesDiv = document.getElementById('rates');
+            if (!ratesDiv) return;
+            
+            let html = '';
+            Object.entries(globalCoins).forEach(([symbol, coin]) => {
+                const change = ((coin.price - previousCoins[symbol]?.price || coin.price) / (previousCoins[symbol]?.price || coin.price) * 100).toFixed(1);
+                const changeClass = change >= 0 ? 'change-up' : 'change-down';
+                const changeSign = change >= 0 ? '+' : '';
+                
+                html += `
+                    <div class="rate-item">
+                        <div class="coin-info">
+                            <div class="coin-icon ${coin.icon.includes('fa-') ? coin.icon : ''}" style="${coin.icon.includes('fa-') ? '' : `background-image: url('${coin.icon}');`}">
+                                ${coin.icon.includes('fa-') ? '' : ''}
+                            </div>
+                            <div class="coin-details">
+                                <span class="coin-symbol">${symbol}</span>
+                                <span class="coin-name">${coin.name}</span>
+                            </div>
+                        </div>
+                        <div class="price-info">
+                            <div class="current-price">${formatPrice(coin.price)} $</div>
+                            <span class="price-change ${changeClass}">${changeSign}${change}%</span>
+                        </div>
+                    </div>
+                `;
+            });
+            ratesDiv.innerHTML = html;
+        }
+
+        // ============================================
+        // ИНИЦИАЛИЗАЦИЯ
+        // ============================================
+        function init() {
+            // Получаем Firebase ID
+            let firebaseId = localStorage.getItem('firebaseId');
+            if (!firebaseId) {
+                firebaseId = 'user_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
+                localStorage.setItem('firebaseId', firebaseId);
+            }
+            
+            currentPlayer = firebaseId;
+
+            // Загружаем криптовалюты
+            loadCoins();
+            
+            // Слушаем изменения криптовалют
+            const coinsRef = database.ref('coins');
+            coinsRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    previousCoins = JSON.parse(JSON.stringify(globalCoins));
+                    globalCoins = data;
+                    updateRatesDisplay();
+                    updateCoinSelects();
+                    updateUI();
+                }
+            });
+
+            // Слушаем изменения игроков
+            const playersRef = database.ref('players');
+            playersRef.on('value', (snapshot) => {
+                updateUI();
+                checkBan();
+                updatePlayersList();
+                updateTop();
+            });
+
+            // Создаем игрока в Firebase если его нет
+            const playerRef = database.ref('players/' + currentPlayer);
+            playerRef.once('value', (snapshot) => {
+                if (!snapshot.exists()) {
+                    let newSimpleId = generateSimpleId();
+                    
+                    isIdAvailable(newSimpleId, (taken) => {
+                        while (taken) {
+                            newSimpleId = generateSimpleId();
+                            taken = false;
+                        }
+                        
+                        const randomNum = Math.floor(Math.random() * 1000);
+                        const defaultUsername = `Игрок${randomNum}`;
+                        
+                        let portfolio = {};
+                        Object.keys(globalCoins).forEach(symbol => {
+                            portfolio[symbol] = 0;
+                        });
+                        
+                        playerRef.set({
+                            usd: 10000,
+                            username: defaultUsername,
+                            simpleId: newSimpleId,
+                            portfolio: portfolio,
+                            transactions: [],
+                            ban: null
+                        });
+                    });
+                } else {
+                    const player = snapshot.val();
+                    currentPlayerId = player.simpleId || generateSimpleId();
+                }
+            });
+
+            startTimer();
+            setInterval(updatePlayersList, 2000);
+            checkBan();
+        }
+
+        // Установка имени
+        function setUsername() {
+            const username = document.getElementById('usernameInput').value.trim();
+            
+            if (!username) {
+                showNotification('❌ Введи имя', 'error');
+                return;
+            }
+            
+            if (username.length > 20) {
+                showNotification('❌ Имя не длиннее 20 символов', 'error');
+                return;
+            }
+            
+            database.ref('players').once('value', (snapshot) => {
+                const players = snapshot.val() || {};
+                let usernameTaken = false;
+                
+                for (const [id, player] of Object.entries(players)) {
+                    if (id !== currentPlayer && player.username && player.username.toLowerCase() === username.toLowerCase()) {
+                        usernameTaken = true;
+                        break;
+                    }
+                }
+                
+                if (usernameTaken) {
+                    showNotification('❌ Это имя уже занято', 'error');
+                    return;
+                }
+                
+                database.ref('players/' + currentPlayer).update({ username: username });
+                showNotification(`✅ Имя изменено на ${username}`);
+                document.getElementById('usernameInput').value = '';
+            });
+        }
+
+        // Добавление новой крипты
+        function addNewCoin() {
+            if (!isAdmin) {
+                showNotification('❌ Только админ', 'error');
+                return;
+            }
+            
+            const name = document.getElementById('newCoinName').value.trim();
+            const symbol = document.getElementById('newCoinSymbol').value.trim().toUpperCase();
+            const price = parseFloat(document.getElementById('newCoinPrice').value);
+            const icon = document.getElementById('newCoinIcon').value.trim() || 'fas fa-coins';
+            
+            if (!name || !symbol || isNaN(price) || price <= 0) {
+                showNotification('❌ Заполни все поля', 'error');
+                return;
+            }
+            
+            if (globalCoins[symbol]) {
+                showNotification('❌ Крипта с таким символом уже есть', 'error');
+                return;
+            }
+            
+            const newCoin = {
+                name: name,
+                price: price,
+                icon: icon
+            };
+            
+            const updates = {};
+            updates[symbol] = newCoin;
+            
+            database.ref('coins').update(updates)
+                .then(() => {
+                    showNotification(`✅ Крипта ${name} добавлена`);
+                    document.getElementById('newCoinName').value = '';
+                    document.getElementById('newCoinSymbol').value = '';
+                    document.getElementById('newCoinPrice').value = '';
+                    document.getElementById('newCoinIcon').value = '';
+                    
+                    // Добавляем в портфели всех игроков
+                    database.ref('players').once('value', (snapshot) => {
+                        const players = snapshot.val() || {};
+                        Object.keys(players).forEach(playerId => {
+                            const playerRef = database.ref('players/' + playerId);
+                            playerRef.child('portfolio').update({ [symbol]: 0 });
+                        });
+                    });
+                })
+                .catch(error => showNotification('❌ Ошибка: ' + error.message, 'error'));
+        }
+
+        // Обновление крипты
+        function updateCoin() {
+            if (!isAdmin) {
+                showNotification('❌ Только админ', 'error');
+                return;
+            }
+            
+            const symbol = document.getElementById('editCoinSelect').value;
+            const newName = document.getElementById('editCoinName').value.trim();
+            const newSymbol = document.getElementById('editCoinSymbol').value.trim().toUpperCase();
+            const newPrice = parseFloat(document.getElementById('editCoinPrice').value);
+            const newIcon = document.getElementById('editCoinIcon').value.trim();
+            
+            if (!symbol) {
+                showNotification('❌ Выбери крипту', 'error');
+                return;
+            }
+            
+            const updates = {};
+            const newCoin = { ...globalCoins[symbol] };
+            
+            if (newName) newCoin.name = newName;
+            if (!isNaN(newPrice) && newPrice > 0) newCoin.price = newPrice;
+            if (newIcon) newCoin.icon = newIcon;
+            
+            // Если меняется символ
+            if (newSymbol && newSymbol !== symbol) {
+                if (globalCoins[newSymbol]) {
+                    showNotification('❌ Символ уже занят', 'error');
+                    return;
+                }
+                
+                updates[newSymbol] = newCoin;
+                updates[symbol] = null;
+                
+                // Обновляем портфели игроков
+                database.ref('players').once('value', (snapshot) => {
+                    const players = snapshot.val() || {};
+                    Object.keys(players).forEach(playerId => {
+                        const playerRef = database.ref('players/' + playerId);
+                        playerRef.child('portfolio').once('value', (snap) => {
+                            const portfolio = snap.val() || {};
+                            if (portfolio[symbol] !== undefined) {
+                                portfolio[newSymbol] = portfolio[symbol];
+                                delete portfolio[symbol];
+                                playerRef.child('portfolio').set(portfolio);
+                            }
+                        });
+                    });
+                });
+            } else {
+                updates[symbol] = newCoin;
+            }
+            
+            database.ref('coins').update(updates)
+                .then(() => {
+                    showNotification('✅ Крипта обновлена');
+                    document.getElementById('editCoinName').value = '';
+                    document.getElementById('editCoinSymbol').value = '';
+                    document.getElementById('editCoinPrice').value = '';
+                    document.getElementById('editCoinIcon').value = '';
+                })
+                .catch(error => showNotification('❌ Ошибка: ' + error.message, 'error'));
+        }
+
+        // Удаление крипты
+        function deleteCoin() {
+            if (!isAdmin) {
+                showNotification('❌ Только админ', 'error');
+                return;
+            }
+            
+            const symbol = document.getElementById('editCoinSelect').value;
+            
+            if (!symbol) {
+                showNotification('❌ Выбери крипту', 'error');
+                return;
+            }
+            
+            if (['BTC', 'ETH', 'SOL'].includes(symbol)) {
+                showNotification('❌ Нельзя удалить базовую крипту', 'error');
+                return;
+            }
+            
+            if (!confirm(`Удалить ${globalCoins[symbol].name}?`)) return;
+            
+            const updates = {};
+            updates[symbol] = null;
+            
+            database.ref('coins').update(updates)
+                .then(() => {
+                    showNotification('✅ Крипта удалена');
+                    
+                    // Удаляем из портфелей игроков
+                    database.ref('players').once('value', (snapshot) => {
+                        const players = snapshot.val() || {};
+                        Object.keys(players).forEach(playerId => {
+                            const playerRef = database.ref('players/' + playerId);
+                            playerRef.child('portfolio').child(symbol).remove();
+                        });
+                    });
+                })
+                .catch(error => showNotification('❌ Ошибка: ' + error.message, 'error'));
+        }
+
+        // Смена ID
+        function changePlayerId() {
+            if (!isAdmin) {
+                showNotification('❌ Только админ', 'error');
+                return;
+            }
+            
+            const searchTerm = document.getElementById('targetIdUser').value.trim();
+            const newId = document.getElementById('newId').value.trim();
+            
+            if (!searchTerm) {
+                showNotification('❌ Введи имя или текущий ID', 'error');
+                return;
+            }
+            
+            if (!newId) {
+                showNotification('❌ Введи новый ID', 'error');
+                return;
+            }
+            
+            if (newId.length > 20) {
+                showNotification('❌ ID не длиннее 20 символов', 'error');
+                return;
+            }
+            
+            database.ref('players').once('value', (snapshot) => {
+                const players = snapshot.val() || {};
+                let idTaken = false;
+                
+                for (const [id, player] of Object.entries(players)) {
+                    if (player.simpleId && player.simpleId.toLowerCase() === newId.toLowerCase()) {
+                        idTaken = true;
+                        break;
+                    }
+                }
+                
+                if (idTaken) {
+                    showNotification('❌ Этот ID уже занят', 'error');
+                    return;
+                }
+                
+                findPlayerBySimpleIdOrUsername(searchTerm, (targetId) => {
+                    if (!targetId) {
+                        showNotification('❌ Игрок не найден', 'error');
+                        return;
+                    }
+                    
+                    database.ref('players/' + targetId).update({ simpleId: newId });
+                    showNotification(`✅ ID изменен на ${newId}`);
+                    
+                    document.getElementById('targetIdUser').value = '';
+                    document.getElementById('newId').value = '';
+                });
+            });
+        }
+
+        // Вайп топа
+        function wipeTop() {
+            if (!isAdmin) {
+                showNotification('❌ Только админ', 'error');
+                return;
+            }
+            
+            if (!confirm('Точно удалить всех игроков? Это действие необратимо!')) return;
+            
+            database.ref('players').remove()
+                .then(() => {
+                    showNotification('✅ Все игроки удалены');
+                    
+                    // Создаем текущего игрока заново
+                    let newSimpleId = generateSimpleId();
+                    isIdAvailable(newSimpleId, (taken) => {
+                        while (taken) {
+                            newSimpleId = generateSimpleId();
+                            taken = false;
+                        }
+                        
+                        let portfolio = {};
+                        Object.keys(globalCoins).forEach(symbol => {
+                            portfolio[symbol] = 0;
+                        });
+                        
+                        database.ref('players/' + currentPlayer).set({
+                            usd: 10000,
+                            username: 'Игрок' + Math.floor(Math.random() * 1000),
+                            simpleId: newSimpleId,
+                            portfolio: portfolio,
+                            transactions: [],
+                            ban: null
+                        });
+                    });
+                })
+                .catch(error => showNotification('❌ Ошибка: ' + error.message, 'error'));
+        }
+
+        // Обновление ТОПа
+        function updateTop() {
+            database.ref('players').once('value', (snapshot) => {
+                const players = snapshot.val() || {};
+                let topList = [];
+                
+                Object.entries(players).forEach(([id, player]) => {
+                    let totalValue = player.usd || 0;
+                    Object.keys(globalCoins).forEach(symbol => {
+                        totalValue += (player.portfolio?.[symbol] || 0) * (globalCoins[symbol]?.price || 0);
+                    });
+                    
+                    topList.push({
+                        id: id,
+                        username: player.username || '???',
+                        simpleId: player.simpleId || '???',
+                        total: totalValue
+                    });
+                });
+                
+                topList.sort((a, b) => b.total - a.total);
+                topList = topList.slice(0, 10);
+                
+                let html = '';
+                topList.forEach((player, index) => {
+                    const rank = index + 1;
+                    const isCurrent = player.id === currentPlayer ? ' (👑 Ты)' : '';
+                    
+                    html += `
+                        <div style="display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <div>
+                                <span style="color: ${rank === 1 ? '#ffd700' : rank === 2 ? '#c0c0c0' : rank === 3 ? '#cd7f32' : '#fff'}">#${rank}</span>
+                                <span style="color: #4ecca7; margin-left: 10px;">${player.username}</span>
+                                <span style="font-size: 11px; opacity: 0.5; margin-left: 5px;">(${player.simpleId})</span>
+                                ${isCurrent}
+                            </div>
+                            <span style="color: #ffd700;">${player.total.toFixed(2)} $</span>
+                        </div>
+                    `;
+                });
+                
+                document.getElementById('topList').innerHTML = html || '<p style="padding: 10px; text-align: center;">Пока нет игроков</p>';
+            });
+        }
+
+        // ============================================
+        // ФУНКЦИИ ДЛЯ БАНА
+        // ============================================
+        
+        function checkBan() {
+            const playerRef = database.ref('players/' + currentPlayer);
+            playerRef.once('value', (snapshot) => {
+                const player = snapshot.val();
+                if (player && player.ban) {
+                    const ban = player.ban;
+                    const now = Date.now();
+                    
+                    if (now >= ban.until) {
+                        playerRef.update({ ban: null });
+                        hideBanScreen();
+                        return;
+                    }
+                    
+                    showBanScreen(ban.reason, ban.until);
+                } else {
+                    hideBanScreen();
+                }
+            });
+        }
+
+        function showBanScreen(reason, until) {
+            const banScreen = document.getElementById('ban-screen');
+            document.getElementById('banReason').textContent = reason;
+            
+            const untilDate = new Date(until);
+            document.getElementById('banUntil').textContent = `До: ${untilDate.toLocaleString()}`;
+            
+            banScreen.classList.add('show');
+            
+            if (banTimerInterval) clearInterval(banTimerInterval);
+            
+            banTimerInterval = setInterval(() => {
+                const now = Date.now();
+                const remaining = until - now;
+                
+                if (remaining <= 0) {
+                    clearInterval(banTimerInterval);
+                    checkBan();
+                    return;
+                }
+                
+                const hours = Math.floor(remaining / (1000 * 60 * 60));
+                const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+                
+                document.getElementById('banTimer').textContent = 
+                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        function hideBanScreen() {
+            document.getElementById('ban-screen').classList.remove('show');
+            if (banTimerInterval) {
+                clearInterval(banTimerInterval);
+                banTimerInterval = null;
+            }
+        }
+
+        function banPlayerByUsername() {
+            if (!isAdmin) {
+                showNotification('❌ Ты не админ', 'error');
+                return;
+            }
+            
+            const searchTerm = document.getElementById('banUsername').value.trim();
+            const reason = document.getElementById('banReasonInput').value.trim();
+            const hours = parseFloat(document.getElementById('banHours').value);
+            
+            if (!searchTerm) {
+                showNotification('❌ Введи имя или ID', 'error');
+                return;
+            }
+            
+            if (!reason) {
+                showNotification('❌ Введи причину', 'error');
+                return;
+            }
+            
+            if (isNaN(hours) || hours <= 0) {
+                showNotification('❌ Введи корректное время', 'error');
+                return;
+            }
+            
+            findPlayerBySimpleIdOrUsername(searchTerm, (targetId) => {
+                if (!targetId) {
+                    showNotification('❌ Игрок не найден', 'error');
+                    return;
+                }
+                
+                const until = Date.now() + (hours * 60 * 60 * 1000);
+                
+                database.ref('players/' + targetId).update({
+                    ban: {
+                        reason: reason,
+                        until: until,
+                        bannedAt: Date.now(),
+                        bannedBy: currentPlayer
+                    }
+                });
+                
+                showNotification(`✅ Игрок ${searchTerm} забанен на ${hours} ч.`);
+                
+                document.getElementById('banUsername').value = '';
+                document.getElementById('banReasonInput').value = '';
+                document.getElementById('banHours').value = '24';
+            });
+        }
+
+        function unbanPlayerByUsername() {
+            if (!isAdmin) {
+                showNotification('❌ Ты не админ', 'error');
+                return;
+            }
+            
+            const searchTerm = document.getElementById('unbanUsername').value.trim();
+            
+            if (!searchTerm) {
+                showNotification('❌ Введи имя или ID', 'error');
+                return;
+            }
+            
+            findPlayerBySimpleIdOrUsername(searchTerm, (targetId) => {
+                if (!targetId) {
+                    showNotification('❌ Игрок не найден', 'error');
+                    return;
+                }
+                
+                database.ref('players/' + targetId).update({ ban: null });
+                showNotification(`✅ Игрок ${searchTerm} разбанен`);
+                
+                document.getElementById('unbanUsername').value = '';
+            });
+        }
+
+        // ============================================
+        // ПЕРЕВОДЫ
+        // ============================================
+        
+        function sendTransferByUsername() {
+            const searchTerm = document.getElementById('receiverUsername').value.trim();
+            const amount = parseFloat(document.getElementById('exchangeAmount').value);
+            
+            if (!searchTerm) {
+                showNotification('❌ Введи имя или ID', 'error');
+                return;
+            }
+            
+            if (isNaN(amount) || amount <= 0) {
+                showNotification('❌ Введи сумму', 'error');
+                return;
+            }
+            
+            findPlayerBySimpleIdOrUsername(searchTerm, (receiverId) => {
+                if (!receiverId) {
+                    showNotification('❌ Получатель не найден', 'error');
+                    return;
+                }
+                
+                if (receiverId === currentPlayer) {
+                    showNotification('❌ Нельзя перевести самому себе', 'error');
+                    return;
+                }
+                
+                const playerRef = database.ref('players/' + currentPlayer);
+                playerRef.once('value', (snapshot) => {
+                    const player = snapshot.val();
+                    if (!player || player.usd < amount) {
+                        showNotification('❌ Не хватает денег', 'error');
+                        return;
+                    }
+
+                    const receiverRef = database.ref('players/' + receiverId);
+                    receiverRef.once('value', (snapshot) => {
+                        if (!snapshot.exists()) {
+                            let portfolio = {};
+                            Object.keys(globalCoins).forEach(symbol => {
+                                portfolio[symbol] = 0;
+                            });
+                            
+                            receiverRef.set({
+                                usd: 0,
+                                username: 'Новый',
+                                simpleId: generateSimpleId(),
+                                portfolio: portfolio,
+                                transactions: [],
+                                ban: null
+                            });
+                        }
+
+                        playerRef.update({ usd: player.usd - amount });
+                        receiverRef.transaction((receiver) => {
+                            if (receiver) {
+                                receiver.usd = (receiver.usd || 0) + amount;
+                            }
+                            return receiver;
+                        });
+
+                        const transaction = {
+                            type: 'transfer',
+                            amount: amount,
+                            from: currentPlayer,
+                            to: receiverId,
+                            date: new Date().toLocaleTimeString()
+                        };
+
+                        playerRef.child('transactions').push(transaction);
+                        receiverRef.child('transactions').push(transaction);
+
+                        showNotification(`✅ Переведено ${amount}$ игроку ${searchTerm}`);
+                        
+                        document.getElementById('receiverUsername').value = '';
+                        document.getElementById('exchangeAmount').value = '';
+                    });
+                });
+            });
+        }
+
+        function giveMoneyByUsername() {
+            if (!isAdmin) {
+                showNotification('❌ Ты не админ', 'error');
+                return;
+            }
+            
+            const searchTerm = document.getElementById('targetUsername').value.trim();
+            const amount = parseFloat(document.getElementById('amountInput').value);
+            
+            if (!searchTerm) {
+                showNotification('❌ Введи имя или ID', 'error');
+                return;
+            }
+            
+            if (isNaN(amount) || amount <= 0) {
+                showNotification('❌ Введи сумму', 'error');
+                return;
+            }
+            
+            findPlayerBySimpleIdOrUsername(searchTerm, (targetId) => {
+                if (!targetId) {
+                    showNotification('❌ Игрок не найден', 'error');
+                    return;
+                }
+                
+                const playerRef = database.ref('players/' + targetId);
+                playerRef.transaction((player) => {
+                    if (player) {
+                        player.usd = (player.usd || 0) + amount;
+                    } else {
+                        let portfolio = {};
+                        Object.keys(globalCoins).forEach(symbol => {
+                            portfolio[symbol] = 0;
+                        });
+                        
+                        player = {
+                            usd: amount,
+                            username: searchTerm,
+                            simpleId: searchTerm,
+                            portfolio: portfolio,
+                            transactions: {},
+                            ban: null
+                        };
+                    }
+                    return player;
+                });
+
+                playerRef.child('transactions').push({
+                    type: 'give',
+                    amount: amount,
+                    date: new Date().toLocaleTimeString()
+                });
+
+                showNotification(`✅ Выдано ${amount}$ игроку ${searchTerm}`);
+                
+                document.getElementById('targetUsername').value = '';
+                document.getElementById('amountInput').value = '';
+            });
+        }
+
+        function deductMoneyByUsername() {
+            if (!isAdmin) {
+                showNotification('❌ Ты не админ', 'error');
+                return;
+            }
+            
+            const searchTerm = document.getElementById('targetUsername').value.trim();
+            const amount = parseFloat(document.getElementById('amountInput').value);
+            
+            if (!searchTerm) {
+                showNotification('❌ Введи имя или ID', 'error');
+                return;
+            }
+            
+            if (isNaN(amount) || amount <= 0) {
+                showNotification('❌ Введи сумму', 'error');
+                return;
+            }
+            
+            findPlayerBySimpleIdOrUsername(searchTerm, (targetId) => {
+                if (!targetId) {
+                    showNotification('❌ Игрок не найден', 'error');
+                    return;
+                }
+                
+                const playerRef = database.ref('players/' + targetId);
+                playerRef.once('value', (snapshot) => {
+                    const player = snapshot.val();
+                    
+                    if (!player) {
+                        showNotification('❌ Игрок не найден', 'error');
+                        return;
+                    }
+                    
+                    const currentBalance = player.usd || 0;
+                    
+                    if (currentBalance < amount) {
+                        showNotification(`❌ У игрока только ${currentBalance}$`, 'error');
+                        return;
+                    }
+                    
+                    playerRef.update({ usd: currentBalance - amount });
+
+                    playerRef.child('transactions').push({
+                        type: 'deduct',
+                        amount: amount,
+                        date: new Date().toLocaleTimeString()
+                    });
+
+                    showNotification(`✅ Списано ${amount}$ у игрока ${searchTerm}`);
+                    
+                    document.getElementById('targetUsername').value = '';
+                    document.getElementById('amountInput').value = '';
+                });
+            });
+        }
+
+        // Таймер
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                timerSeconds--;
+                
+                const seconds = timerSeconds;
+                
+                document.getElementById('timerDisplay').textContent = 
+                    `⏱️ Обновление через: ${seconds} сек`;
+                
+                if (timerSeconds <= 0) {
+                    timerSeconds = 30;
+                    updateRatesAuto();
+                }
+            }, 1000);
+        }
+
+        // Автообновление курсов
+        function updateRatesAuto() {
+            if (!isAdmin) {
+                const newCoins = JSON.parse(JSON.stringify(globalCoins));
+                
+                Object.keys(newCoins).forEach(symbol => {
+                    newCoins[symbol].price = newCoins[symbol].price * (1 + (Math.random() * 1.2 - 0.6));
+                    newCoins[symbol].price = Math.round(newCoins[symbol].price * 100) / 100;
+                });
+                
+                database.ref('coins').set(newCoins);
+            }
+        }
+
+        // ============================================
+        // ПОКУПКА КРИПТЫ
+        // ============================================
+        function buyCrypto() {
+            const currency = document.getElementById('buyCurrency').value;
+            const amount = parseFloat(document.getElementById('buyAmount').value);
+            
+            if (isNaN(amount) || amount <= 0) {
+                showNotification('❌ Введи сумму', 'error');
+                return;
+            }
+
+            const playerRef = database.ref('players/' + currentPlayer);
+            
+            playerRef.once('value', (snapshot) => {
+                const player = snapshot.val();
+                if (!player) {
+                    showNotification('❌ Ошибка загрузки игрока', 'error');
+                    return;
+                }
+                
+                if (player.usd < amount) {
+                    showNotification('❌ Не хватает денег', 'error');
+                    return;
+                }
+
+                if (!globalCoins[currency]) {
+                    showNotification('❌ Крипта не найдена', 'error');
+                    return;
+                }
+
+                const cryptoAmount = amount / globalCoins[currency].price;
+                
+                let portfolio = player.portfolio || {};
+                portfolio[currency] = (portfolio[currency] || 0) + cryptoAmount;
+                
+                const updates = {
+                    usd: player.usd - amount,
+                    portfolio: portfolio
+                };
+                
+                playerRef.update(updates)
+                    .then(() => {
+                        return playerRef.child('transactions').push({
+                            type: 'buy',
+                            currency: currency,
+                            amount: cryptoAmount.toFixed(4),
+                            total: amount,
+                            date: new Date().toLocaleTimeString()
+                        });
+                    })
+                    .then(() => {
+                        showNotification(`✅ Куплено ${cryptoAmount.toFixed(4)} ${currency}`);
+                        document.getElementById('buyAmount').value = '';
+                    })
+                    .catch((error) => {
+                        console.error("Ошибка:", error);
+                        showNotification('❌ Ошибка: ' + error.message, 'error');
+                    });
+                    
+            }).catch((error) => {
+                showNotification('❌ Ошибка: ' + error.message, 'error');
+            });
+        }
+
+        // ============================================
+        // ПРОДАЖА КРИПТЫ
+        // ============================================
+        function sellCrypto() {
+            const currency = document.getElementById('sellCurrency').value;
+            const amount = parseFloat(document.getElementById('sellAmount').value);
+            
+            if (isNaN(amount) || amount <= 0) {
+                showNotification('❌ Введи количество', 'error');
+                return;
+            }
+
+            const playerRef = database.ref('players/' + currentPlayer);
+            
+            playerRef.once('value', (snapshot) => {
+                const player = snapshot.val();
+                if (!player) {
+                    showNotification('❌ Ошибка загрузки игрока', 'error');
+                    return;
+                }
+                
+                let portfolio = player.portfolio || {};
+                const currentCrypto = portfolio[currency] || 0;
+                
+                if (currentCrypto < amount) {
+                    showNotification(`❌ У тебя только ${currentCrypto.toFixed(4)} ${currency}`, 'error');
+                    return;
+                }
+
+                if (!globalCoins[currency]) {
+                    showNotification('❌ Крипта не найдена', 'error');
+                    return;
+                }
+
+                const profit = amount * globalCoins[currency].price;
+                
+                portfolio[currency] = currentCrypto - amount;
+                
+                const updates = {
+                    usd: player.usd + profit,
+                    portfolio: portfolio
+                };
+                
+                playerRef.update(updates)
+                    .then(() => {
+                        return playerRef.child('transactions').push({
+                            type: 'sell',
+                            currency: currency,
+                            amount: amount.toFixed(4),
+                            total: profit,
+                            date: new Date().toLocaleTimeString()
+                        });
+                    })
+                    .then(() => {
+                        showNotification(`✅ Продано за ${profit.toFixed(2)} USD`);
+                        document.getElementById('sellAmount').value = '';
+                    })
+                    .catch((error) => {
+                        console.error("Ошибка:", error);
+                        showNotification('❌ Ошибка: ' + error.message, 'error');
+                    });
+                    
+            }).catch((error) => {
+                showNotification('❌ Ошибка: ' + error.message, 'error');
+            });
+        }
+
+        // Обновление UI
+        function updateUI() {
+            updateRatesDisplay();
+
+            const playerRef = database.ref('players/' + currentPlayer);
+            playerRef.on('value', (snapshot) => {
+                const player = snapshot.val();
+                if (player) {
+                    document.getElementById('usdBalance').textContent = player.usd.toFixed(2) + ' $';
+                    document.getElementById('playerUsername').textContent = player.username || 'никнейм';
+                    document.getElementById('playerIdDisplay').textContent = player.simpleId || '???';
+                    document.getElementById('currentPlayerId').textContent = player.simpleId || '???';
+                    
+                    // Портфель
+                    let portfolioHtml = '';
+                    Object.keys(globalCoins).forEach(symbol => {
+                        const amount = player.portfolio?.[symbol] || 0;
+                        const value = amount * (globalCoins[symbol]?.price || 0);
+                        
+                        portfolioHtml += `
+                            <div class="portfolio-item">
+                                <div class="portfolio-coin">
+                                    <div class="portfolio-icon ${globalCoins[symbol].icon.includes('fa-') ? globalCoins[symbol].icon : ''}" 
+                                         style="${globalCoins[symbol].icon.includes('fa-') ? '' : `background-image: url('${globalCoins[symbol].icon}');`}">
+                                    </div>
+                                    <div>
+                                        <div>${globalCoins[symbol].name}</div>
+                                        <div class="portfolio-value">${value.toFixed(2)} $</div>
+                                    </div>
+                                </div>
+                                <span class="portfolio-amount">${amount.toFixed(4)}</span>
+                            </div>
+                        `;
+                    });
+                    document.getElementById('portfolio').innerHTML = portfolioHtml;
+
+                    // Транзакции
+                    const transactionsDiv = document.getElementById('transactions');
+                    if (player.transactions) {
+                        let html = '';
+                        Object.values(player.transactions).reverse().forEach(t => {
+                            let text = '';
+                            if (t.type === 'buy') text = `✅ Купил ${t.amount} ${t.currency} за $${t.total}`;
+                            else if (t.type === 'sell') text = `📤 Продал ${t.amount} ${t.currency} за $${t.total}`;
+                            else if (t.type === 'give') text = `🎁 Получил $${t.amount} от админа`;
+                            else if (t.type === 'deduct') text = `📉 Списано $${t.amount} админом`;
+                            else if (t.type === 'transfer') {
+                                if (t.from === currentPlayer) text = `📤 Перевел $${t.amount} игроку ${t.to}`;
+                                else text = `📥 Получил $${t.amount} от игрока ${t.from}`;
+                            }
+                            
+                            html += `
+                                <div class="transaction-item ${t.type}">
+                                    <span>${text}</span>
+                                    <span class="transaction-time">${t.date}</span>
+                                </div>
+                            `;
+                        });
+                        transactionsDiv.innerHTML = html || '<p style="text-align:center; padding:20px; opacity:0.5;">Нет транзакций</p>';
+                    }
+                }
+            });
+
+            // Статистика
+            database.ref('players').once('value', (snapshot) => {
+                const players = snapshot.val() || {};
+                const totalPlayers = Object.keys(players).length;
+                
+                let totalValue = 0;
+                let totalTrades = 0;
+                
+                Object.values(players).forEach(p => {
+                    totalValue += p.usd || 0;
+                    Object.keys(globalCoins).forEach(symbol => {
+                        totalValue += (p.portfolio?.[symbol] || 0) * (globalCoins[symbol]?.price || 0);
+                    });
+                    totalTrades += Object.keys(p.transactions || {}).length;
+                });
+                
+                document.getElementById('totalPlayers').textContent = totalPlayers;
+                document.getElementById('totalValue').textContent = totalValue.toFixed(2) + ' $';
+                document.getElementById('totalTrades').textContent = totalTrades;
+            });
+        }
+
+        function formatPrice(price) {
+            return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.classList.add('show');
+            setTimeout(() => notification.classList.remove('show'), 2000);
+        }
+
+        function updatePlayersList() {
+            if (!isAdmin) return;
+            
+            const listDiv = document.getElementById('playersList');
+            database.ref('players').once('value', (snapshot) => {
+                const players = snapshot.val() || {};
+                let html = '';
+                
+                Object.entries(players).forEach(([id, player]) => {
+                    let total = player.usd || 0;
+                    Object.keys(globalCoins).forEach(symbol => {
+                        total += (player.portfolio?.[symbol] || 0) * (globalCoins[symbol]?.price || 0);
+                    });
+                    
+                    const isCurrent = id === currentPlayer;
+                    const isBanned = player.ban;
+                    
+                    html += `
+                        <div class="player-row" onclick="document.getElementById('targetUsername').value='${player.username || ''}'; document.getElementById('targetIdUser').value='${player.simpleId || ''}'; document.getElementById('banUsername').value='${player.simpleId || ''}'; document.getElementById('unbanUsername').value='${player.simpleId || ''}'">
+                            <div class="player-row-info">
+                                <span class="player-row-username">${player.username || '—'}</span>
+                                <span class="player-row-id">🆔 ${player.simpleId || '???'}</span>
+                                <div class="player-row-badges">
+                                    ${isCurrent ? '<span class="current-player-badge">👑 ТЫ</span>' : ''}
+                                    ${isBanned ? '<span class="banned-badge">⛔ БАН</span>' : ''}
+                                </div>
+                            </div>
+                            <span style="color: #4ecca7;">${total.toFixed(2)} $</span>
+                        </div>
+                    `;
+                });
+                
+                listDiv.innerHTML = html || '<p style="padding:10px; opacity:0.5;">Нет игроков</p>';
+            });
+        }
+
+        function loginAdmin() {
+            const password = document.getElementById('adminPassword').value;
+            if (password === '4355516') {
+                isAdmin = true;
+                document.getElementById('adminLoginCard').style.display = 'none';
+                document.getElementById('adminPanel').classList.add('show');
+                showNotification('👑 Добро пожаловать, админ!');
+            } else {
+                showNotification('❌ Неверный пароль', 'error');
+            }
+            document.getElementById('adminPassword').value = '';
+        }
+
+        function logoutAdmin() {
+            isAdmin = false;
+            document.getElementById('adminLoginCard').style.display = 'block';
+            document.getElementById('adminPanel').classList.remove('show');
+            showNotification('👋 Вышел из админки');
+        }
+
+        function updateRates() {
+            if (!isAdmin) return;
+            
+            const newCoins = JSON.parse(JSON.stringify(globalCoins));
+            
+            newCoins.BTC.price = parseFloat(document.getElementById('adminBtcRate').value);
+            newCoins.ETH.price = parseFloat(document.getElementById('adminEthRate').value);
+            newCoins.SOL.price = parseFloat(document.getElementById('adminSolRate').value);
+            
+            database.ref('coins').set(newCoins);
+            showNotification('✅ Курсы обновлены');
+        }
+
+        // Запуск
+        init();
+    </script>
+</body>
+</html>
